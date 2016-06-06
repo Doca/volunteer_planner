@@ -3,6 +3,7 @@
 import random
 import string
 import datetime
+import time
 
 import factory
 from django.core.management.base import BaseCommand
@@ -12,8 +13,9 @@ from registration.models import RegistrationProfile
 from django.contrib.auth.models import User
 from accounts.models import UserAccount
 
-from organizations.models import Facility, Workplace, Task
-from tests.factories import ShiftHelperFactory, ShiftFactory, FacilityFactory, PlaceFactory, OrganizationFactory
+from organizations.models import Organization, Facility, Workplace, Task
+from tests.factories import ShiftHelperFactory, ShiftFactory, FacilityFactory, PlaceFactory, OrganizationFactory, \
+    NewsEntryFactory, TaskFactory, UserAccountFactory
 from scheduler.models import Shift
 from places.models import Region, Area, Place, Country
 
@@ -29,6 +31,11 @@ LOREM = "Lorem tellivizzle dolizzle bling bling amizzle, mah nizzle adipiscing" 
         "Bizzle dapibizzle. Curabitizzle tellizzle urna, pretizzle i" \
         " saw beyonces tizzles and my pizzle went crizzle, " \
         "mattis we gonna chung, eleifend vitae, nunc. "
+COUNT_PLACES = 10
+COUNT_ORGANIZATIONS = 5
+COUNT_FACILITIES = 13 * COUNT_ORGANIZATIONS
+COUNT_NEWSENTRIES = int(COUNT_FACILITIES * 1.5)
+COUNT_USERS = 50
 
 
 def gen_date(hour, day):
@@ -54,21 +61,26 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list
 
     def add_arguments(self, parser):
-        parser.add_argument('days', nargs='+', type=int)
-        parser.add_argument('--flush')
+        parser.add_argument('days', type=int)
+        parser.add_argument('--flush', action='store_true')
 
     @factory.django.mute_signals(signals.pre_delete)
     def handle(self, *args, **options):
+        verbosity = options['verbosity']
         if options['flush']:
-            print "delete all data in app tables"
-            RegistrationProfile.objects.all().delete()
+            self.print_debug(verbosity, 0, "delete all data in app tables")
+            start = time.clock()
 
+            # delete all work related information
             Shift.objects.all().delete()
             Task.objects.all().delete()
             Workplace.objects.all().delete()
             Facility.objects.all().delete()
+            Organization.objects.all().delete()
 
+            # delete user accounts (not to be mixed with logins)
             UserAccount.objects.all().delete()
+            RegistrationProfile.objects.all().delete()
 
             # delete geographic information
             Country.objects.all().delete()
@@ -76,32 +88,70 @@ class Command(BaseCommand):
             Area.objects.all().delete()
             Place.objects.all().delete()
 
+            # delete user logins, except super user(s)
             User.objects.filter().exclude(is_superuser=True).delete()
 
-        # create regional data
-        places = list()
-        for i in range(0, 10):
-            places.append(PlaceFactory.create())
+            stop = time.clock()
+            self.print_debug(verbosity, 2, "Deletion took {} s", (stop - start))
 
-        organizations = list()
-        for i in range(0, 4):
-            organizations.append(OrganizationFactory.create())
+            # create regional data
+            PlaceFactory.create_batch(COUNT_PLACES)
+            places = factory.Iterator(Place.objects.all())
+            self.print_debug(verbosity, 1, "Created {} places", COUNT_PLACES)
 
-        # create shifts for number of days
-        for day in range(0, options['days'][0]):
-            for i in range(2, 23):
-                place = places[random.randint(0, len(places) - 1)]
-                organization = organizations[random.randint(0, len(organizations) - 1)]
-                facility = FacilityFactory.create(
-                    description=LOREM,
-                    place=place,
-                    organization=organization
-                )
-                shift = ShiftFactory.create(
-                    starting_time=gen_date(hour=i - 1, day=day),
-                    ending_time=gen_date(hour=i, day=day),
-                    facility=facility
-                )
-                # assign random volunteer for each shift
-                reg_user = ShiftHelperFactory.create(shift=shift)
-                reg_user.save()
+            OrganizationFactory.create_batch(COUNT_ORGANIZATIONS)
+            organizations = factory.Iterator(Organization.objects.all())
+            self.print_debug(verbosity, 1, "Created {} organizations", COUNT_ORGANIZATIONS)
+
+            FacilityFactory.create_batch(
+                COUNT_FACILITIES,
+                description=LOREM,
+                place=places,
+                organization=organizations,
+            )
+            self.print_debug(verbosity, 1, "Created {} facilities", COUNT_FACILITIES)
+            facilities = factory.Iterator(Facility.objects.all())
+
+            TaskFactory.create_batch(COUNT_FACILITIES, facility=facilities)
+            self.print_debug(verbosity, 1, "Created {} tasks", COUNT_FACILITIES)
+
+            NewsEntryFactory.create_batch(COUNT_NEWSENTRIES, facility=facilities)
+            self.print_debug(verbosity, 1, "Created {} news entries", COUNT_NEWSENTRIES)
+
+            UserAccountFactory.create_batch(COUNT_USERS)
+            self.print_debug(verbosity, 1, "Created {} user accounts", COUNT_USERS)
+
+        users = factory.Iterator(UserAccount.objects.all())
+
+        start = time.clock()
+        shifts_count = 0
+        for facility in Facility.objects.all():
+            if 0 != random.randint(1, 100) % 6:
+                # pick only random facilities
+                # used to fill database with data that are unused but might influence queries
+                continue
+            tasks = factory.Iterator(Task.objects.filter(facility=facility))
+            # generate shifts for number of days
+            for day in range(0, options['days']):
+                # generate random number of shifts per day and facility
+                for i in range(0, random.randint(1, 7)):
+                    ending_hour = random.randint(2, 23)
+                    shift = ShiftFactory.create(
+                        starting_time=gen_date(hour=ending_hour - 1, day=day),
+                        ending_time=gen_date(hour=ending_hour, day=day),
+                        facility=facility,
+                        task=tasks
+                    )
+                    shifts_count += 1
+                    ShiftHelperFactory.create_batch(random.randint(1, 10), user_account=users, shift=shift)
+
+        stop = time.clock()
+        self.print_debug(verbosity, 1, "Created {} shifts", shifts_count)
+        self.print_debug(verbosity, 2, "Shift creation took {} s", (stop - start))
+
+        self.print_debug(verbosity, 0, "Dummy data created")
+
+    def print_debug(self, verbosity, level, message, *args):
+        if level <= verbosity:
+            print(message.format(*args))
+        pass

@@ -186,7 +186,7 @@ the superuser you created earlier (in case you don't see an error page here).
 
 Run management command
 
-    ./manage.py create_dummy_data 5 --flush True
+    ./manage.py create_dummy_data --flush 5
 
 with activated virtualenv to get 5 days of dummy data and delete tables in advance.
 

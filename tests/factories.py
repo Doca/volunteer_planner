@@ -10,11 +10,13 @@ from accounts import models as account_models
 from scheduler import models as scheduler_models
 from places import models as places_models
 from organizations import models as organization_models
+from news import models as news_models
 
 
 class CountryFactory(factory.DjangoModelFactory):
     class Meta:
         model = places_models.Country
+        django_get_or_create = ['name']
 
     name = factory.Sequence(lambda n: 'Country ' + str(n))
     slug = factory.Sequence(lambda n: 'country_' + str(n))
@@ -23,6 +25,7 @@ class CountryFactory(factory.DjangoModelFactory):
 class RegionFactory(factory.DjangoModelFactory):
     class Meta:
         model = places_models.Region
+        django_get_or_create = ['name', 'country']
 
     name = factory.Sequence(lambda n: 'Region ' + str(n))
     slug = factory.Sequence(lambda n: 'region_' + str(n))
@@ -33,6 +36,7 @@ class RegionFactory(factory.DjangoModelFactory):
 class AreaFactory(factory.DjangoModelFactory):
     class Meta:
         model = places_models.Area
+        django_get_or_create = ['name', 'region']
 
     name = factory.Sequence(lambda n: 'Area ' + str(n))
     slug = factory.Sequence(lambda n: 'area_' + str(n))
@@ -43,6 +47,7 @@ class AreaFactory(factory.DjangoModelFactory):
 class PlaceFactory(factory.DjangoModelFactory):
     class Meta:
         model = places_models.Place
+        django_get_or_create = ['name', 'area']
 
     name = factory.Sequence(lambda n: 'Place ' + str(n))
     slug = factory.Sequence(lambda n: 'place_' + str(n))
@@ -74,6 +79,7 @@ class FacilityFactory(factory.DjangoModelFactory):
 class TaskFactory(factory.DjangoModelFactory):
     class Meta:
         model = organization_models.Task
+        django_get_or_create = ['name', 'facility']
 
     name = factory.Sequence(lambda n: 'Task ' + str(n))
     description = factory.Sequence(lambda n: 'task ' + str(n))
@@ -85,7 +91,7 @@ class ShiftFactory(factory.DjangoModelFactory):
     class Meta:
         model = scheduler_models.Shift
 
-    task = factory.SubFactory(TaskFactory)
+    task = factory.SubFactory(TaskFactory, facility=factory.SelfAttribute('facility'))
     facility = factory.SubFactory(FacilityFactory)
 
     starting_time = datetime(2016, 2, 13, 19, 0)
@@ -107,6 +113,7 @@ class UserFactory(factory.DjangoModelFactory):
 class UserAccountFactory(factory.DjangoModelFactory):
     class Meta:
         model = account_models.UserAccount
+        django_get_or_create = ['user']
 
     user = factory.SubFactory(UserFactory)
 
@@ -114,7 +121,19 @@ class UserAccountFactory(factory.DjangoModelFactory):
 class ShiftHelperFactory(factory.DjangoModelFactory):
     class Meta:
         model = scheduler_models.ShiftHelper
-        django_get_or_create = ['shift']
+        django_get_or_create = ['user_account', 'shift']
 
     user_account = factory.SubFactory(UserAccountFactory)
     shift = factory.SubFactory(ShiftFactory)
+
+
+class NewsEntryFactory(factory.DjangoModelFactory):
+    class Meta:
+        model = news_models.NewsEntry
+
+    title = FuzzyText(length=18, chars=string.ascii_letters + " ")
+    subtitle = FuzzyText(length=24, chars=string.ascii_letters + " ")
+    text = FuzzyText(length=128, chars=string.printable)
+
+    facility = factory.SubFactory(FacilityFactory)
+    organization = factory.SelfAttribute('facility.organization')
