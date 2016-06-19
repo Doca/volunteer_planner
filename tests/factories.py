@@ -91,7 +91,7 @@ class ShiftFactory(factory.DjangoModelFactory):
     class Meta:
         model = scheduler_models.Shift
 
-    task = factory.SubFactory(TaskFactory, facility=factory.SelfAttribute('facility'))
+    task = factory.SubFactory(TaskFactory)  # , facility=factory.SelfAttribute('facility')) # CyclicDefinitionError
     facility = factory.SubFactory(FacilityFactory)
 
     starting_time = datetime(2016, 2, 13, 19, 0)
