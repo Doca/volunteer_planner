@@ -32,6 +32,7 @@ class NewsAdmin(admin.ModelAdmin):
         'organization'
     )
     readonly_fields = ('slug',)
+    search_fields = ('title', 'subtitle')
 
     def get_queryset(self, request):
         qs = super(NewsAdmin, self).get_queryset(request)
