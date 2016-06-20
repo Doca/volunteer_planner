@@ -32,3 +32,10 @@ class NewsAdmin(admin.ModelAdmin):
         'organization'
     )
     readonly_fields = ('slug',)
+
+    def get_queryset(self, request):
+        qs = super(NewsAdmin, self).get_queryset(request)
+        qs = qs.select_related('organization', 'facility')
+        qs = qs.prefetch_related('organization', 'facility')
+
+        return qs
