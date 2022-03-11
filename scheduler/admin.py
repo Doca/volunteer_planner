@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.utils.html import format_html, mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from . import models
 from organizations.admin import (
@@ -17,7 +17,6 @@ from organizations.admin import (
 class ShiftAdminForm(forms.ModelForm):
     class Meta:
         model = models.Shift
-        fields = '__all__'
         fields = ['facility', 'slots', 'task', 'workplace', 'starting_time', 'ending_time', 'members_only']
 
     def clean(self):
