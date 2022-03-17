@@ -71,6 +71,8 @@ LOCAL_APPS = (
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_PARTY_APPS
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -173,4 +175,8 @@ DATE_FORMAT = "l, d.m.Y"
 
 INCLUDE_REGISTER_URL = True
 INCLUDE_AUTH_URLS = True
-REGISTRATION_FORM = "registration.forms.RegistrationFormUniqueEmail"
+REGISTRATION_FORM = "accounts.forms.RegistrationForm"
+
+FACILITY_MANAGER_GROUPNAME = "Facility Manager"
+ORGANIZATION_MANAGER_GROUPNAME = "Organization Manager"
+

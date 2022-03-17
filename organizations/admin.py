@@ -114,20 +114,22 @@ class MembershipFilteredAdmin(admin.ModelAdmin):
                 if len(user_orgs) <= 1 and hasattr(obj, 'organization') \
                         and 'organization' not in readonly:
                     readonly += ('organization',)
+        if obj and hasattr(obj, "user_account"):
+            readonly += ('user_account',)
         return readonly
 
-    def get_list_display(self, request):
-        list_display = list(
-            super(MembershipFilteredAdmin, self).get_list_display(request))
-        if request.user.is_superuser:
-            return list_display
-        if 'facility' in list_display or 'organization' in list_display:
-            user_orgs, user_facilities = get_cached_memberships(request.user)
-            if len(user_facilities) <= 1 and 'facility' in list_display:
-                list_display.remove('facility')
-            if len(user_orgs) <= 1 and 'organization' in list_display:
-                list_display.remove('organization')
-        return list_display
+    # def get_list_display(self, request):
+    #     list_display = list(
+    #         super(MembershipFilteredAdmin, self).get_list_display(request))
+    #     if request.user.is_superuser:
+    #         return list_display
+    #     if 'facility' in list_display or 'organization' in list_display:
+    #         user_orgs, user_facilities = get_cached_memberships(request.user)
+    #         if len(user_facilities) <= 1 and 'facility' in list_display:
+    #             list_display.remove('facility')
+    #         if len(user_orgs) <= 1 and 'organization' in list_display:
+    #             list_display.remove('organization')
+    #     return list_display
 
     def get_list_display_links(self, request, list_display):
         list_display_links = list(
@@ -212,12 +214,6 @@ class MembershipFieldListFilter(admin.RelatedFieldListFilter):
 @admin.register(models.Organization)
 class OrganizationAdmin(MembershipFilteredAdmin):
 
-    def get_short_description(self, obj):
-        return striptags(obj.short_description)
-
-    get_short_description.short_description = _(u'short description')
-    get_short_description.allow_tags = True
-
     def get_description(self, obj):
         return striptags(obj.description)
 
@@ -232,7 +228,6 @@ class OrganizationAdmin(MembershipFilteredAdmin):
 
     list_display = (
         'name',
-        'short_description',
         'get_description',
         'contact_info',
         'address',
@@ -240,7 +235,6 @@ class OrganizationAdmin(MembershipFilteredAdmin):
     raw_id_fields = ('members',)
     search_fields = ('name',)
     widgets = {
-        'short_description': CKEditorWidget(),
         'description': CKEditorWidget(),
         'contact_info': CKEditorWidget(),
     }
@@ -249,11 +243,6 @@ class OrganizationAdmin(MembershipFilteredAdmin):
 
 @admin.register(models.Facility)
 class FacilityAdmin(MembershipFilteredAdmin):
-    def get_short_description(self, obj):
-        return striptags(obj.short_description)
-
-    get_short_description.short_description = _(u'short description')
-    get_short_description.allow_tags = True
 
     def get_description(self, obj):
         return striptags(obj.description)
@@ -268,9 +257,8 @@ class FacilityAdmin(MembershipFilteredAdmin):
     get_contact_info.allow_tags = True
 
     list_display = (
-        'organization',
         'name',
-        'get_short_description',
+        'organization',
         'get_description',
         'get_contact_info',
         'place',
@@ -286,7 +274,6 @@ class FacilityAdmin(MembershipFilteredAdmin):
     raw_id_fields = ('members',)
     search_fields = ('name',)
     widgets = {
-        'short_description': CKEditorWidget(),
         'description': CKEditorWidget(),
         'contact_info': CKEditorWidget(),
     }
@@ -332,8 +319,8 @@ class WorkplaceAdmin(MembershipFilteredAdmin):
     get_description.allow_tags = True
 
     list_display = (
-        'facility',
         'name',
+        'facility',
         'get_description'
     )
     list_filter = (
@@ -356,8 +343,8 @@ class TaskAdmin(MembershipFilteredAdmin):
     get_description.allow_tags = True
 
     list_display = (
-        'facility',
         'name',
+        'facility',
         'get_description'
     )
     list_filter = (

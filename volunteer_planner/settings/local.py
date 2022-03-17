@@ -5,17 +5,21 @@ from datetime import timedelta
 DEBUG = True
 INTERNAL_IPS = ('127.0.0.1',)
 
+MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
+] + MIDDLEWARE
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         # Intentionally out of repository so that git clean doesn't delete the file.
-        'NAME': os.path.join(SITE_ROOT, '..', 'db.sqlite3'),
+        'NAME': os.path.join(SITE_ROOT, 'db.sqlite3'),
     }
 }
 
-# INSTALLED_APPS += (
-#     'debug_toolbar',
-# )
+INSTALLED_APPS += (
+    'debug_toolbar',
+)
 
 # CACHE CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#caches

@@ -48,7 +48,7 @@
 
         <div class="form-group {% if form.password2.errors %}has-error{% endif %}">
             <label {% if form.password2.errors %}style="color:red"{% endif %}
-                   for="password2">{% if form.password2.errors %}{% trans "The two password fields didn't match." %}{% endif %}</label>
+                   for="password2">{% if form.password2.errors %}{{ form.password2.errors.0 }}{% endif %}</label>
             <input type="password"
                    class="form-control"
                    placeholder="{% trans "Repeat password" %}"
@@ -56,6 +56,22 @@
                    name="password2"
                    value="{{ form.cleaned_data.password2 }}">
           </div>
+
+        <div class="form-group {% if form.accept_privacy_policy.errors %}has-error{% endif %}">
+            <input type="checkbox"
+                   id="accept_privacy_policy"
+                   name="accept_privacy_policy"
+                   {% if form.cleaned_data.accept_privacy_policy %}
+                       checked
+                   {% endif %}>
+            <label {% if form.accept_privacy_policy.errors %}style="color:red"{% endif %} for="accept_privacy_policy">
+                {% blocktrans %}I have read and agree to the <a href="/impressum/#datenschutz">Privacy Policy</a>.{% endblocktrans %}
+
+                {% if form.accept_privacy_policy.errors %}
+                    <b>{% trans "This must be checked." %}</b>
+                {% endif %}
+            </label>
+        </div>
 
         <button type="submit" class="btn btn-primary align-left">{% trans "Sign-up" %}</button>
     </form>
