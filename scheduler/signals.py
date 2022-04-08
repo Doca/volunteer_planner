@@ -1,5 +1,7 @@
 # coding=utf-8
 import logging
+import os
+from pathlib import Path
 
 from django.conf import settings
 from django.core.mail import EmailMessage
@@ -10,8 +12,10 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.timezone import timedelta
 from django.utils.translation import gettext_lazy as _
+from icalendar import Calendar, Event, vCalAddress, vText
 
-from scheduler.models import Shift, ShiftMessageToHelpers
+
+from scheduler.models import Shift, ShiftMessageToHelpers, ShiftHelper
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +117,61 @@ def notify_users_shift_change(sender, instance, **kwargs):
                     len(addresses),
                 )
                 mail.send()
+
+
+@receiver(post_save, sender=ShiftHelper)
+def send_shift_subscribe_confirmation(sender, instance, created, **kwargs):
+    prodid = instance.shift.get_ical_uuid
+    cal = Calendar()
+    cal.add("prodid", prodid)
+    cal.add("version", "2.0")
+
+    event = Event()
+    event_title = (
+        _("Volunteering at") + f": {instance.shift.facility} {instance.shift.workplace}"
+    )
+    event.add("name", event_title)
+    event.add("summary", event_title)
+    event.add("description", instance.shift.facility.contact_info)
+    event.add("dtstart", instance.shift.starting_time)
+    event.add("dtend", instance.shift.ending_time)
+    event["uid"] = prodid
+    event["location"] = vText(instance.shift.facility.place)
+    cal.add_component(event)
+    directory = Path.cwd() / "tmp_ics_files"
+    try:
+        directory.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        pass
+
+    f = open(os.path.join(directory, f"{prodid}.ics"), "wb")
+    f.write(cal.to_ical())
+    f.close()
+    try:
+        message = render_to_string(
+            "emails/shift_subscribe_confirmation.txt",
+            {
+                "user": instance.user_account,
+                "shift": instance.shift,
+            },
+        )
+        subject = _(
+            "Volunteer-Planner: Confirmation of your "
+            "shift {shift_title} starting at {shift_starting_time}"
+        ).format(
+            shift_title=instance.shift.task.name,
+            shift_starting_time=instance.shift.starting_time,
+        )
+        if message:
+            mail = EmailMessage(
+                subject=subject,
+                body=message,
+                to=[instance.user_account.user.email],
+                from_email="noreply@volunteer-planner.org",
+            )
+            mail.send()
+    except Exception as e:
+        logger.error("send_shift_message_to_helpers: message not successful", e)
 
 
 @receiver(post_save, sender=ShiftMessageToHelpers)

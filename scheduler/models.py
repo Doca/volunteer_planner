@@ -1,4 +1,5 @@
 # coding: utf-8
+import base64
 import logging
 from datetime import time
 
@@ -104,6 +105,12 @@ class Shift(models.Model):
             time=localize(localtime(self.ending_time, get_current_timezone()).time()),
             days=days_str,
         ).strip()
+
+    @property
+    def get_ical_uuid(self):
+        return base64.b64encode(
+            bytes(f"volunteer-planner.org-id/{self.id}".encode("utf-8"))
+        )
 
     def __unicode__(self):
         return "{title} - {facility} ({start} - {end})".format(

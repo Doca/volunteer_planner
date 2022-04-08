@@ -1,0 +1,15 @@
+{% load i18n %}{{shift}} {% blocktranslate with url=shift.get_absolute_url address=shift.facility.address facility_name=shift.facility.name place=shift.facility.place.name area=shift.facility.place.area.name %}Hello {{ user}},
+
+You just signed up for the following task: {{shift}}.
+The facility {{facility_name}} you will find at the following address:
+
+{{ address }}
+{{ place }}
+{{ area }}
+
+    TODO: Link of the shift (url)
+
+
+Best,
+Your volunteer-planner.org team
+{% endblocktranslate %}
